@@ -344,7 +344,7 @@ func (c *Client) CreatePlaylistForUser(userID, playlistName, description string,
 // scopes (depending on whether the playlist is public or private).
 // The current user must own the playlist in order to modify it.
 func (c *Client) ChangePlaylistName(playlistID ID, newName string) error {
-	return c.modifyPlaylist(playlistID, newName, "", nil)
+	return c.modifyPlaylist(playlistID, newName, "", nil, nil)
 }
 
 // ChangePlaylistAccess modifies the public/private status of a playlist.  This call
@@ -352,7 +352,15 @@ func (c *Client) ChangePlaylistName(playlistID ID, newName string) error {
 // ScopePlaylistModifyPrivate scopes (depending on whether the playlist is
 // currently public or private).  The current user must own the playlist in order to modify it.
 func (c *Client) ChangePlaylistAccess(playlistID ID, public bool) error {
-	return c.modifyPlaylist(playlistID, "", "", &public)
+	return c.modifyPlaylist(playlistID, "", "", &public, nil)
+}
+
+// ChangePlaylistAccess modifies the collaborative status of a playlist.  This call
+// requires that the user has authorized the ScopePlaylistModifyPublic or
+// ScopePlaylistModifyPrivate scopes (depending on whether the playlist is
+// currently public or private).  The current user must own the playlist in order to modify it.
+func (c *Client) ChangePlaylistCollaborative(playlistID ID, collaborative bool) error {
+	return c.modifyPlaylist(playlistID, "", "", nil, &collaborative)
 }
 
 // ChangePlaylistDescription modifies the description of a playlist.  This call
@@ -360,7 +368,7 @@ func (c *Client) ChangePlaylistAccess(playlistID ID, public bool) error {
 // ScopePlaylistModifyPrivate scopes (depending on whether the playlist is
 // currently public or private).  The current user must own the playlist in order to modify it.
 func (c *Client) ChangePlaylistDescription(playlistID ID, newDescription string) error {
-	return c.modifyPlaylist(playlistID, "", newDescription, nil)
+	return c.modifyPlaylist(playlistID, "", newDescription, nil, nil)
 }
 
 // ChangePlaylistNameAndAccess combines ChangePlaylistName and ChangePlaylistAccess into
@@ -368,7 +376,7 @@ func (c *Client) ChangePlaylistDescription(playlistID ID, newDescription string)
 // or ScopePlaylistModifyPrivate scopes (depending on whether the playlist is currently
 // public or private).  The current user must own the playlist in order to modify it.
 func (c *Client) ChangePlaylistNameAndAccess(playlistID ID, newName string, public bool) error {
-	return c.modifyPlaylist(playlistID, newName, "", &public)
+	return c.modifyPlaylist(playlistID, newName, "", &public, nil)
 }
 
 // ChangePlaylistNameAccessAndDescription combines ChangePlaylistName, ChangePlaylistAccess, and
@@ -376,18 +384,29 @@ func (c *Client) ChangePlaylistNameAndAccess(playlistID ID, newName string, publ
 // the ScopePlaylistModifyPublic or ScopePlaylistModifyPrivate scopes (depending on whether the
 // playlist is currently public or private).  The current user must own the playlist in order to modify it.
 func (c *Client) ChangePlaylistNameAccessAndDescription(playlistID ID, newName, newDescription string, public bool) error {
-	return c.modifyPlaylist(playlistID, newName, newDescription, &public)
+	return c.modifyPlaylist(playlistID, newName, newDescription, &public, nil)
 }
 
-func (c *Client) modifyPlaylist(playlistID ID, newName, newDescription string, public *bool) error {
+// ChangePlaylistNameAccessDescriptionAndCollaborative combines ChangePlaylistName,
+// ChangePlaylistAccess, ChangePlaylistDescription and ChangePlaylistCollaborative
+// into a single Web API call.  It requires that the user has authorized
+// the ScopePlaylistModifyPublic or ScopePlaylistModifyPrivate scopes (depending on whether the
+// playlist is currently public or private).  The current user must own the playlist in order to modify it.
+func (c *Client) ChangePlaylistNameAccessDescriptionAndCollaborative(playlistID ID, newName, newDescription string, public bool, collaborative bool) error {
+	return c.modifyPlaylist(playlistID, newName, newDescription, &public, &collaborative)
+}
+
+func (c *Client) modifyPlaylist(playlistID ID, newName, newDescription string, public *bool, collaborative *bool) error {
 	body := struct {
-		Name        string `json:"name,omitempty"`
-		Public      *bool  `json:"public,omitempty"`
-		Description string `json:"description,omitempty"`
+		Name          string `json:"name,omitempty"`
+		Public        *bool  `json:"public,omitempty"`
+		Description   string `json:"description,omitempty"`
+		Collaborative *bool  `json:"collaborative,omitempty"`
 	}{
 		newName,
 		public,
 		newDescription,
+		collaborative,
 	}
 	bodyJSON, err := json.Marshal(body)
 	if err != nil {
